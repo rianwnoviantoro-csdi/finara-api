@@ -38,6 +38,7 @@ Finara adalah aplikasi pencatatan keuangan pribadi yang membantu pengguna memant
 | Database | PostgreSQL 16 |
 | Validation | Zod + class-validator |
 | Auth | JWT (access + refresh tokens) + bcrypt |
+| Logging | Winston + nest-winston |
 | Containerization | Docker + Docker Compose |
 | Code Quality | ESLint, Prettier, Husky, lint-staged |
 
@@ -67,7 +68,7 @@ yarn install
 cp .env.example .env
 ```
 
-Edit `.env` (defaults work langsung dengan Docker Compose):
+Edit `.env`:
 
 ```env
 NODE_ENV=development
@@ -117,12 +118,22 @@ API tersedia di: **http://localhost:3000/api/v1**
 
 ```
 finara-api/
-├── drizzle/                    # Generated migration SQL
+├── logs/                       # Log files (production)
+│   ├── error.log
+│   └── combined.log
 ├── src/
 │   ├── common/
+│   │   ├── errors/             # Custom error classes
+│   │   │   ├── app-error.ts
+│   │   │   ├── validation.error.ts
+│   │   │   ├── authentication.error.ts
+│   │   │   ├── not-found.error.ts
+│   │   │   ├── conflict.error.ts
+│   │   │   └── index.ts
 │   │   ├── filters/            # Global exception filter
 │   │   ├── guards/             # JWT auth guard
 │   │   ├── interceptors/       # Response interceptor
+│   │   ├── logger/             # Winston logger module
 │   │   └── pipes/              # Zod validation pipe
 │   ├── config/                 # Config factories
 │   ├── database/
@@ -131,6 +142,8 @@ finara-api/
 │   ├── modules/
 │   │   └── database/           # Global DatabaseModule
 │   ├── utils/
+│   │   ├── response.ts         # successResponse / errorResponse helpers
+│   │   ├── async-handler.ts    # asyncHandler / wrapAsync utilities
 │   │   └── hash.util.ts        # bcrypt helpers
 │   ├── app.module.ts
 │   └── main.ts
@@ -149,9 +162,19 @@ finara-api/
 ```json
 {
   "success": true,
-  "statusCode": 200,
-  "message": "Request successful",
   "data": {},
+  "statusCode": 200,
+  "timestamp": "2026-03-16T12:00:00.000Z"
+}
+```
+
+**Success dengan Meta (pagination):**
+```json
+{
+  "success": true,
+  "data": [],
+  "meta": { "page": 1, "total": 100 },
+  "statusCode": 200,
   "timestamp": "2026-03-16T12:00:00.000Z"
 }
 ```
@@ -160,12 +183,38 @@ finara-api/
 ```json
 {
   "success": false,
-  "statusCode": 400,
+  "error": "Resource not found",
+  "code": "NOT_FOUND",
+  "statusCode": 404,
   "timestamp": "2026-03-16T12:00:00.000Z",
-  "path": "/api/v1/resource",
-  "message": "Validation failed"
+  "path": "/api/v1/resource"
 }
 ```
+
+---
+
+## Error Types
+
+| Class | Status | Code |
+|---|---|---|
+| `ValidationError` | 400 | `VALIDATION_ERROR` |
+| `AuthenticationError` | 401 | `AUTHENTICATION_ERROR` |
+| `NotFoundError` | 404 | `NOT_FOUND` |
+| `ConflictError` | 409 | `CONFLICT` |
+
+```typescript
+import { NotFoundError, ConflictError } from '@/common/errors';
+
+throw new NotFoundError('User not found');
+throw new ConflictError('Email already exists');
+```
+
+---
+
+## Logging
+
+- **Development** (`NODE_ENV != production`): colorized console output
+- **Production** (`NODE_ENV=production`): console + file (`logs/error.log`, `logs/combined.log`)
 
 ---
 

@@ -7,33 +7,49 @@ import {
 import { Response } from 'express';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
+import { successResponse, SuccessResponse } from '../../utils/response';
 
-export interface ApiResponse<T> {
-  success: boolean;
-  statusCode: number;
-  message: string;
+export interface WithMeta<T> {
   data: T;
-  timestamp: string;
+  meta: unknown;
+}
+
+function hasMetaShape<T>(value: unknown): value is WithMeta<T> {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'data' in value &&
+    'meta' in value
+  );
 }
 
 @Injectable()
 export class ResponseInterceptor<T> implements NestInterceptor<
   T,
-  ApiResponse<T>
+  SuccessResponse<T>
 > {
   intercept(
     context: ExecutionContext,
     next: CallHandler<T>,
-  ): Observable<ApiResponse<T>> {
+  ): Observable<SuccessResponse<T>> {
     const response = context.switchToHttp().getResponse<Response>();
+
     return next.handle().pipe(
-      map((data) => ({
-        success: true,
-        statusCode: response.statusCode,
-        message: 'Request successful',
-        data,
-        timestamp: new Date().toISOString(),
-      })),
+      map((payload) => {
+        if (hasMetaShape<T>(payload)) {
+          return {
+            ...successResponse(payload.data, payload.meta),
+            statusCode: response.statusCode,
+            timestamp: new Date().toISOString(),
+          };
+        }
+
+        return {
+          ...successResponse(payload),
+          statusCode: response.statusCode,
+          timestamp: new Date().toISOString(),
+        };
+      }),
     );
   }
 }

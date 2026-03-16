@@ -7,6 +7,8 @@ import {
   Logger,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
+import { AppError } from '../errors/app-error';
+import { errorResponse } from '../../utils/response';
 
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
@@ -14,37 +16,54 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
   catch(exception: unknown, host: ArgumentsHost): void {
     const ctx = host.switchToHttp();
-    const response = ctx.getResponse<Response>();
+    const res = ctx.getResponse<Response>();
     const request = ctx.getRequest<Request>();
 
-    const status =
-      exception instanceof HttpException
-        ? exception.getStatus()
-        : HttpStatus.INTERNAL_SERVER_ERROR;
+    let status: number;
+    let message: string;
+    let code: string | undefined;
 
-    const message =
-      exception instanceof HttpException
-        ? exception.getResponse()
-        : 'Internal server error';
+    if (exception instanceof AppError) {
+      status = exception.statusCode;
+      message = exception.message;
+      code = exception.errorCode;
+    } else if (exception instanceof HttpException) {
+      status = exception.getStatus();
+      const httpResponse = exception.getResponse();
+      message =
+        typeof httpResponse === 'object' &&
+        httpResponse !== null &&
+        'message' in httpResponse
+          ? String((httpResponse as { message: unknown }).message)
+          : typeof httpResponse === 'string'
+            ? httpResponse
+            : JSON.stringify(httpResponse);
+      code =
+        (Object.keys(HttpStatus) as Array<keyof typeof HttpStatus>).find(
+          (k) => HttpStatus[k] === (status as HttpStatus),
+        ) ?? 'HTTP_ERROR';
+    } else {
+      status = HttpStatus.INTERNAL_SERVER_ERROR;
+      message = 'Internal server error';
+      code = 'INTERNAL_SERVER_ERROR';
+    }
 
-    const errorResponse = {
-      success: false,
-      statusCode: status,
-      timestamp: new Date().toISOString(),
-      path: request.url,
-      message:
-        typeof message === 'object' && 'message' in message
-          ? (message as { message: string }).message
-          : message,
-    };
-
-    if (status === (HttpStatus.INTERNAL_SERVER_ERROR as number)) {
+    if (status >= 500) {
       this.logger.error(
-        `${request.method} ${request.url} - ${status}`,
+        `[${request.method}] ${request.url} → ${status}`,
         exception instanceof Error ? exception.stack : String(exception),
+      );
+    } else {
+      this.logger.warn(
+        `[${request.method}] ${request.url} → ${status}: ${message}`,
       );
     }
 
-    response.status(status).json(errorResponse);
+    res.status(status).json({
+      ...errorResponse(message, code),
+      statusCode: status,
+      timestamp: new Date().toISOString(),
+      path: request.url,
+    });
   }
 }
