@@ -1,6 +1,33 @@
 # Finara API
 
-RESTful API for a personal finance management application, built with **NestJS**, **Drizzle ORM**, and **PostgreSQL**.
+RESTful API untuk aplikasi manajemen keuangan pribadi, dibangun dengan **NestJS**, **Drizzle ORM**, dan **PostgreSQL**.
+
+## Tentang Finara
+
+Finara adalah aplikasi pencatatan keuangan pribadi yang membantu pengguna memantau pemasukan dan pengeluaran secara mudah dan terstruktur.
+
+### Fitur Utama
+
+**Autentikasi**
+- Registrasi akun dengan nama, email, dan password
+- Login dengan JWT (access token + refresh token)
+- Lihat profil akun
+
+**Kategori**
+- Kelola kategori transaksi sendiri (income / expense)
+- Contoh: Makan, Transport, Belanja, Gaji, Bonus
+
+**Transaksi**
+- Catat pemasukan dan pengeluaran harian
+- Isi tipe, nominal, kategori, tanggal, dan catatan
+- Lihat riwayat dengan pagination dan filter bulan
+- Edit dan hapus transaksi
+
+**Laporan**
+- Ringkasan keuangan bulanan: total pemasukan, pengeluaran, dan saldo
+- Statistik pengeluaran per kategori (pie chart / bar)
+
+---
 
 ## Tech Stack
 
@@ -40,7 +67,7 @@ yarn install
 cp .env.example .env
 ```
 
-Edit `.env` and fill in your values (defaults work with Docker Compose):
+Edit `.env` (defaults work langsung dengan Docker Compose):
 
 ```env
 NODE_ENV=development
@@ -52,37 +79,26 @@ JWT_REFRESH_SECRET=your-super-secret-refresh-key-change-in-production
 JWT_REFRESH_EXPIRES_IN=7d
 ```
 
-### 3. Start Database with Docker Compose
+### 3. Jalankan Database
 
 ```bash
-# Start PostgreSQL only (recommended for local development)
 docker-compose up postgres -d
-
-# Or start everything (including the app container)
-docker-compose up -d
 ```
 
-### 4. Run Database Migration
-
-Generate and apply the initial migration:
+### 4. Jalankan Migrasi
 
 ```bash
-yarn db:generate   # Generate SQL migration files from schema
-yarn db:migrate    # Apply migrations to the database
+yarn db:generate
+yarn db:migrate
 ```
 
-### 5. Start the Application
+### 5. Jalankan Aplikasi
 
 ```bash
-# Development (hot-reload)
 yarn start:dev
-
-# Production
-yarn build
-yarn start:prod
 ```
 
-The API will be available at: **http://localhost:3000/api/v1**
+API tersedia di: **http://localhost:3000/api/v1**
 
 ---
 
@@ -90,10 +106,10 @@ The API will be available at: **http://localhost:3000/api/v1**
 
 | Command | Description |
 |---|---|
-| `yarn db:generate` | Generate SQL migration files from schema changes |
-| `yarn db:migrate` | Apply pending migrations to the database |
-| `yarn db:push` | Push schema changes directly (dev only, no migration files) |
-| `yarn db:studio` | Open Drizzle Studio (visual DB browser) |
+| `yarn db:generate` | Generate SQL migration dari schema |
+| `yarn db:migrate` | Apply migration ke database |
+| `yarn db:push` | Push schema langsung (dev only) |
+| `yarn db:studio` | Buka Drizzle Studio |
 
 ---
 
@@ -101,24 +117,24 @@ The API will be available at: **http://localhost:3000/api/v1**
 
 ```
 finara-api/
-├── drizzle/                    # Generated migration SQL files
+├── drizzle/                    # Generated migration SQL
 ├── src/
 │   ├── common/
-│   │   ├── filters/            # Global exception filters
-│   │   ├── guards/             # Auth guards (JWT, etc.)
-│   │   ├── interceptors/       # Response interceptors
-│   │   └── pipes/              # Validation pipes (Zod)
-│   ├── config/                 # Module-level config factories
+│   │   ├── filters/            # Global exception filter
+│   │   ├── guards/             # JWT auth guard
+│   │   ├── interceptors/       # Response interceptor
+│   │   └── pipes/              # Zod validation pipe
+│   ├── config/                 # Config factories
 │   ├── database/
-│   │   ├── schema.ts           # Drizzle ORM table definitions
+│   │   ├── schema.ts           # Drizzle table definitions
 │   │   └── index.ts            # Drizzle db instance
 │   ├── modules/
-│   │   └── database/           # Global DatabaseModule (DI provider)
+│   │   └── database/           # Global DatabaseModule
 │   ├── utils/
 │   │   └── hash.util.ts        # bcrypt helpers
 │   ├── app.module.ts
 │   └── main.ts
-├── drizzle.config.ts           # Drizzle Kit configuration
+├── drizzle.config.ts
 ├── docker-compose.yml
 ├── Dockerfile
 ├── .env.example
@@ -129,15 +145,13 @@ finara-api/
 
 ## API Response Format
 
-All responses follow a consistent envelope:
-
 **Success:**
 ```json
 {
   "success": true,
   "statusCode": 200,
   "message": "Request successful",
-  "data": { ... },
+  "data": {},
   "timestamp": "2026-03-16T12:00:00.000Z"
 }
 ```
@@ -158,31 +172,7 @@ All responses follow a consistent envelope:
 ## Running Tests
 
 ```bash
-# Unit tests
 yarn test
-
-# Watch mode
-yarn test:watch
-
-# Coverage
 yarn test:cov
-
-# E2E tests
 yarn test:e2e
-```
-
----
-
-## Docker (Full Stack)
-
-To run both the database and the app in Docker:
-
-```bash
-docker-compose up -d
-```
-
-Then run migrations from inside the container:
-
-```bash
-docker-compose exec app yarn db:migrate
 ```
