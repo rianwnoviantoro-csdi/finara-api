@@ -1,0 +1,9 @@
+.git
+node_modules
+dist
+drizzle
+coverage
+.env
+.env.*
+!.env.example
+*.log
