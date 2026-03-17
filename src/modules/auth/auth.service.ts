@@ -1,15 +1,12 @@
-import {
-  Injectable,
-  Inject,
-  ConflictException,
-  InternalServerErrorException,
-} from '@nestjs/common';
-import * as bcrypt from 'bcrypt';
+import { Injectable, Inject } from '@nestjs/common';
 import { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { DB } from '../database/database.module';
 import * as schema from '../../database/schema';
 import { RegisterDto } from './dto/register.dto';
 import { asyncHandler } from '../../utils/async-handler';
+import { hashPassword } from '../../utils/hash.util';
+import { successResponse } from '../../utils/response';
+import { AppError } from '../../common/errors';
 
 @Injectable()
 export class AuthService {
@@ -22,7 +19,7 @@ export class AuthService {
       const { name, email, password } = data;
 
       try {
-        const hashedPassword = await bcrypt.hash(password, 12);
+        const hashedPassword = await hashPassword(password);
 
         const result = await this.db.transaction(async (tx) => {
           const [newUser] = await tx
@@ -52,10 +49,7 @@ export class AuthService {
           return newUser;
         });
 
-        return {
-          success: true,
-          data: result,
-        };
+        return successResponse(result);
       } catch (error: unknown) {
         if (
           typeof error === 'object' &&
@@ -63,19 +57,12 @@ export class AuthService {
           'code' in error &&
           (error as Record<string, unknown>).code === '23505'
         ) {
-          throw new ConflictException({
-            success: false,
-            error: 'Email already registered',
-            code: 'EMAIL_EXISTS',
-          });
+          throw new AppError('Email already registered', 409, 'EMAIL_EXISTS');
         }
 
         const errorMessage =
           error instanceof Error ? error.message : 'Registration failed';
-        throw new InternalServerErrorException({
-          success: false,
-          error: errorMessage,
-        });
+        throw new AppError(errorMessage, 500, 'INTERNAL_SERVER_ERROR');
       }
     });
   }
