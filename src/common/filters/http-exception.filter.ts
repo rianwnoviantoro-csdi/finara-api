@@ -59,11 +59,16 @@ export class HttpExceptionFilter implements ExceptionFilter {
       );
     }
 
-    res.status(status).json({
+    const errorPayload: Record<string, unknown> = {
       ...errorResponse(message, code),
       statusCode: status,
-      timestamp: new Date().toISOString(),
-      path: request.url,
-    });
+    };
+
+    if (status < 500) {
+      errorPayload.timestamp = new Date().toISOString();
+      errorPayload.path = request.url;
+    }
+
+    res.status(status).json(errorPayload);
   }
 }

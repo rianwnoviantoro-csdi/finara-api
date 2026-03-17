@@ -1,4 +1,4 @@
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable, Inject, Logger } from '@nestjs/common';
 import { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { DB } from '../database/database.module';
 import * as schema from '../../database/schema';
@@ -9,6 +9,8 @@ import { AppError } from '../../common/errors';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     @Inject(DB) private readonly db: PostgresJsDatabase<typeof schema>,
   ) {}
@@ -19,7 +21,6 @@ export class AuthService {
 
       try {
         const hashedPassword = await hashPassword(password);
-
         const result = await this.db.transaction(async (tx) => {
           const [newUser] = await tx
             .insert(schema.users)
@@ -59,9 +60,11 @@ export class AuthService {
           throw new AppError('Email already registered', 409, 'EMAIL_EXISTS');
         }
 
-        const errorMessage =
-          error instanceof Error ? error.message : 'Registration failed';
-        throw new AppError(errorMessage, 500, 'INTERNAL_SERVER_ERROR');
+        const errMessage =
+          error instanceof Error ? error.stack || error.message : String(error);
+        this.logger.error(`Registration error:\n${errMessage}`);
+
+        throw new AppError('Registration failed', 500, 'INTERNAL_SERVER_ERROR');
       }
     });
   }

@@ -9,16 +9,32 @@ const consoleFormat = combine(
   errors({ stack: true }),
   printf((info) => {
     const level = String(info['level']);
-    const rawMessage = info['message'];
+    let rawMessage = info['message'];
+    let context = info['context'];
+
+    if (
+      typeof context === 'object' &&
+      context !== null &&
+      (rawMessage === undefined || rawMessage === '')
+    ) {
+      rawMessage = context;
+      context = undefined;
+    }
+
     const message =
       typeof rawMessage === 'object' && rawMessage !== null
-        ? util.inspect(rawMessage, { colors: true, depth: null })
+        ? rawMessage instanceof Error
+          ? util.inspect(rawMessage, {
+              colors: true,
+              depth: null,
+              customInspect: false,
+            })
+          : util.inspect(rawMessage, { colors: true, depth: null })
         : String(rawMessage);
+
     const ts = String(info['timestamp']);
     const stack = typeof info['stack'] === 'string' ? info['stack'] : undefined;
-    const context =
-      typeof info['context'] === 'string' ? info['context'] : undefined;
-    const ctx = context ? `[${context}] ` : '';
+    const ctx = typeof context === 'string' && context ? `[${context}] ` : '';
     const body = stack ? `${message}\n${stack}` : message;
     return `${ts} ${level} ${ctx}${body}`;
   }),
