@@ -150,14 +150,12 @@ describe('HttpExceptionFilter', () => {
   });
 
   describe('Response shape', () => {
-    it('always includes timestamp and path', () => {
+    it('never includes timestamp and path', () => {
       filter.catch(new NotFoundError(), mockHost);
-      expect(mockJson).toHaveBeenCalledWith(
-        expect.objectContaining({
-          timestamp: expect.any(String) as unknown as string,
-          path: '/api/v1/test',
-        }),
-      );
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      const payload = mockJson.mock.calls[0][0] as Record<string, unknown>;
+      expect(payload).not.toHaveProperty('timestamp');
+      expect(payload).not.toHaveProperty('path');
     });
   });
 });

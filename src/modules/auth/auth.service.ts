@@ -1,5 +1,6 @@
 import { Injectable, Inject, Logger } from '@nestjs/common';
 import { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
+import { eq } from 'drizzle-orm';
 import { DB } from '../database/database.module';
 import * as schema from '../../database/schema';
 import { RegisterDto } from './dto/register.dto';
@@ -20,6 +21,14 @@ export class AuthService {
       const { name, email, password } = data;
 
       try {
+        const existingUser = await this.db.query.users.findFirst({
+          where: eq(schema.users.email, email),
+        });
+
+        if (existingUser) {
+          throw new AppError('Email already registered', 409, 'EMAIL_EXISTS');
+        }
+
         const hashedPassword = await hashPassword(password);
         const result = await this.db.transaction(async (tx) => {
           const [newUser] = await tx
@@ -51,13 +60,8 @@ export class AuthService {
 
         return result;
       } catch (error: unknown) {
-        if (
-          typeof error === 'object' &&
-          error !== null &&
-          'code' in error &&
-          (error as Record<string, unknown>).code === '23505'
-        ) {
-          throw new AppError('Email already registered', 409, 'EMAIL_EXISTS');
+        if (error instanceof AppError) {
+          throw error;
         }
 
         const errMessage =
