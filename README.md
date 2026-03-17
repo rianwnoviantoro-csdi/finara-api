@@ -136,10 +136,17 @@ finara-api/
 │   │   ├── logger/             # Winston logger module
 │   │   └── pipes/              # Zod validation pipe
 │   ├── config/                 # Config factories
+│   │   └── logger.config.ts    # Winston log format
 │   ├── database/
 │   │   ├── schema.ts           # Drizzle table definitions
 │   │   └── index.ts            # Drizzle db instance
 │   ├── modules/
+│   │   ├── auth/               # Authentication module
+│   │   │   ├── dto/            # Zod Validation DTOs
+│   │   │   │   └── register.dto.ts
+│   │   │   ├── auth.controller.ts
+│   │   │   ├── auth.module.ts
+│   │   │   └── auth.service.ts
 │   │   └── database/           # Global DatabaseModule
 │   ├── utils/
 │   │   ├── response.ts         # successResponse / errorResponse helpers
