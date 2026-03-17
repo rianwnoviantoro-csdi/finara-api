@@ -1,4 +1,5 @@
 import * as winston from 'winston';
+import * as util from 'node:util';
 
 const { combine, timestamp, printf, colorize, errors } = winston.format;
 
@@ -8,7 +9,11 @@ const consoleFormat = combine(
   errors({ stack: true }),
   printf((info) => {
     const level = String(info['level']);
-    const message = String(info['message']);
+    const rawMessage = info['message'];
+    const message =
+      typeof rawMessage === 'object' && rawMessage !== null
+        ? util.inspect(rawMessage, { colors: true, depth: null })
+        : String(rawMessage);
     const ts = String(info['timestamp']);
     const stack = typeof info['stack'] === 'string' ? info['stack'] : undefined;
     const context =

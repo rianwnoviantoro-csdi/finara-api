@@ -5,7 +5,6 @@ import * as schema from '../../database/schema';
 import { RegisterDto } from './dto/register.dto';
 import { asyncHandler } from '../../utils/async-handler';
 import { hashPassword } from '../../utils/hash.util';
-import { successResponse } from '../../utils/response';
 import { AppError } from '../../common/errors';
 
 @Injectable()
@@ -49,7 +48,7 @@ export class AuthService {
           return newUser;
         });
 
-        return successResponse(result);
+        return result;
       } catch (error: unknown) {
         if (
           typeof error === 'object' &&
