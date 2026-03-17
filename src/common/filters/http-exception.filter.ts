@@ -48,10 +48,16 @@ export class HttpExceptionFilter implements ExceptionFilter {
       code = 'INTERNAL_SERVER_ERROR';
     }
 
-    this.logger.error(
-      `[${request.method}] ${request.url} → ${status}: ${message}`,
-      exception instanceof Error ? exception.stack : String(exception),
-    );
+    if (status >= 500) {
+      this.logger.error(
+        `[${request.method}] ${request.url} → ${status}`,
+        exception instanceof Error ? exception.stack : String(exception),
+      );
+    } else {
+      this.logger.error(
+        `[${request.method}] ${request.url} → ${status}: ${message}`,
+      );
+    }
 
     const errorPayload: Record<string, unknown> = {
       ...errorResponse(message, code),
